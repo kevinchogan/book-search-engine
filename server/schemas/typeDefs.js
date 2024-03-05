@@ -11,8 +11,8 @@ const typeDefs = `
 
   type User {
     _id: ID!
-    username: String! @unique
-    email: String! @unique
+    username: String!
+    email: String!
     password: String!
     savedBooks: [Book]
     bookCount: Int
@@ -38,8 +38,8 @@ const typeDefs = `
   }
 
   type Mutation {
-    createUser(input: CreateUserInput!): AuthPayload!
-    login(usernameOrEmail: String!, password: String!): AuthPayload!
+    createUser(input: CreateUserInput!): User
+    login(usernameOrEmail: String!, password: String!): User
     saveBook(input: SaveBookInput!): User
     deleteBook(bookId: ID!): User
   }

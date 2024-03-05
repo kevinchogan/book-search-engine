@@ -1,5 +1,5 @@
-const { User } = require("./models");
-const { signToken } = require("./utils/auth");
+const { User } = require("../models");
+const { signToken } = require("../utils/auth");
 
 const resolvers = {
   Query: {
@@ -20,14 +20,6 @@ const resolvers = {
       }
 
       return foundUser;
-    },
-
-    me: async (parent, __, context) => {
-      if (!context.user) {
-        throw new Error("You must be logged in.");
-      }
-
-      return context.user;
     },
   },
   Mutation: {
