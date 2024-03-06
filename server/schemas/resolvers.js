@@ -1,89 +1,66 @@
-const { User } = require("../models");
-const { signToken } = require("../utils/auth");
+const { User, Book } = require("../models");
+const { signToken, AuthenticationError } = require("../utils/auth");
 
 const resolvers = {
   Query: {
     getUser: async (parent, { id, username }) => {
-      let query = {};
-      if (id) {
-        query._id = id;
-      } else if (username) {
-        query.username = username;
-      } else {
-        throw new Error("You must provide either an ID or a username.");
-      }
-
-      const foundUser = await User.findOne(query);
-
+      const param = id ? { _id: id } : {username: username};
+      const foundUser = await User.findOne(param);
       if (!foundUser) {
-        throw new Error("Cannot find a user with this ID or username.");
+        console.log("User not found with that id or username!")
+        throw new Error("Invalid ID or username.");
       }
-
       return foundUser;
     },
-  },
-  Mutation: {
-    createUser: async (parent, { input }) => {
-      try {
-        const user = await User.create(input);
-        const token = signToken(user);
-        return { token, user };
-      } catch (error) {
-        throw new Error("Unable to create user.");
+    me: async (parent, args, context) => {
+      if (context.user) {
+        return Profile.findOne({ _id: context.user._id });
       }
+      throw AuthenticationError;
     },
-    login: async (parent, { usernameOrEmail, password }) => {
-      try {
-        const user = await User.findOne({
-          $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
-        });
-        if (!user) {
-          throw new Error("Can't find this user");
-        }
-        const correctPw = await user.isCorrectPassword(password);
-        if (!correctPw) {
-          throw new Error("Wrong password!");
-        }
-        const token = signToken(user);
-        return { token, user };
-      } catch (error) {
-        throw new Error("Unable to login: " + error.message);
+  },
+
+  Mutation: {
+    createUser: async (parent, { username, email, password }) => {
+      const user = await User.create({ username, email, password });
+      const token = signToken(user);
+
+      return { token, user };
+    },
+    login: async (parent, { email, password }) => {
+
+      const user = await User.findOne({ email });
+
+      if (!user) {
+        throw AuthenticationError;
       }
+
+      const correctPw = await user.isCorrectPassword(password);
+
+      if (!correctPw) {
+        throw AuthenticationError;
+      }
+
+      const token = signToken(user);
+      return { token, user };
     },
     saveBook: async (parent, { input }, context) => {
-      try {
-        if (!context.user) {
-          throw new Error("You must be logged in to save a book.");
-        }
-        const updatedUser = await User.findOneAndUpdate(
-          { _id: context.user._id },
+      if (context.user) {
+        return User.findOneAndUpdate(
+          { _id: user._id },
           { $addToSet: { savedBooks: input } },
           { new: true, runValidators: true }
         );
-        return updatedUser;
-      } catch (error) {
-        throw new Error("Unable to save book: " + error.message);
       }
+      throw AuthenticationError;
     },
     deleteBook: async (parent, { bookId }, context) => {
-      try {
-        if (!context.user) {
-          throw new Error("You must be logged in to delete a book.");
-        }
-        const updatedUser = await User.findOneAndUpdate(
-          { _id: context.user._id },
-          { $pull: { savedBooks: { bookId } } },
-          { new: true }
-        );
-        if (!updatedUser) {
-          throw new Error("Couldn't find user with this id!");
-        }
-        return updatedUser;
-      } catch (error) {
-        throw new Error("Unable to delete book: " + error.message);
+      if (context.user) {
+        return Book.findOneAndDelete({ _id: bookId });
       }
+      throw AuthenticationError;
     },
-  },
+ },
   User: {
     bookCount: (parent) => parent.savedBooks.length,
   },
