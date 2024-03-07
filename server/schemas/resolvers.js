@@ -29,11 +29,8 @@ const resolvers = {
       return { token, user };
     },
     login: async (parent, { email, password }) => {
-      console.log("In login route")
 
       const user = await User.findOne({ email });
-
-      console.log("Got user")
 
       if (!user) {
         throw AuthenticationError;
@@ -45,12 +42,11 @@ const resolvers = {
         throw AuthenticationError;
       }
 
-      console.log("Got password")
-
       const token = signToken(user);
       return { token, user };
     },
     saveBook: async (parent, { bookData }, context) => {
++      console.log("bookData: ", bookData);
       if (context.user) {
         return User.findOneAndUpdate(
           { _id: context.user._id },
