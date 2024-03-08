@@ -13,12 +13,20 @@ export const QUERY_SINGLE_USER = gql`
 `;
 
 export const QUERY_ME = gql`
-  query getMe {
+  query me {
     me {
+    username
+    email
+    bookCount
+    savedBooks {
       _id
-      username
-      email
-      savedBooks
+      authors
+      bookId
+      description
+      image
+      link
+      title
     }
+  }
   }
 `;

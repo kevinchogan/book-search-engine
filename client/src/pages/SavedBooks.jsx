@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import {
   Container,
   Card,
@@ -6,7 +5,7 @@ import {
   Row,
   Col
 } from 'react-bootstrap';
-import { useMutation } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
 import { DELETE_BOOK } from '../utils/mutations';
 import { QUERY_ME } from '../utils/queries';
 
@@ -15,29 +14,15 @@ import Auth from '../utils/auth';
 import { removeBookId } from '../utils/localStorage';
 
 const SavedBooks = () => {
-  const [userData, setUserData] = useState({});
-
-  // use this to determine if `useEffect()` hook needs to run again
-  const userDataLength = Object.keys(userData).length;
-
-  const [ getMe, { meError } ] = useMutation(QUERY_ME);
-  const [ deleteBook, { delError } ] = useMutation(DELETE_BOOK);
-
-  useEffect(() => {
-    const getUserData = async () => {
-      try {
-        const { data } = await getMe();
-
-        const { user } = data.getMe;
-        setUserData(user);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    getUserData();
-  }, [userDataLength]);
-
+  const { loading, data } = useQuery(QUERY_ME, {
+    fetchPolicy: "no-cache"
+  });
+  const [ deleteBook, { Error } ] = useMutation(DELETE_BOOK, {
+    fetchPolicy: "no-cache"
+  });
+  
+  const userData = data?.me || {};
+  console.log("User Data: ", userData)
   // create function that accepts the book's mongo _id value as param and deletes the book from the database
   const handleDeleteBook = async (bookId) => {
     const token = Auth.loggedIn() ? Auth.getToken() : null;
@@ -47,21 +32,19 @@ const SavedBooks = () => {
     }
 
     try {
-      const { data } = await deleteBook({
-        bookId
+      await deleteBook({
+        variables: { bookId: bookId },
       });
-
-      const updatedUser = data.deleteBook;
-      setUserData(updatedUser);
       // upon success, remove book's id from localStorage
       removeBookId(bookId);
+      location.reload();
     } catch (err) {
       console.error(err);
     }
   };
 
   // if data isn't here yet, say so
-  if (!userDataLength) {
+  if (loading) {
     return <h2>LOADING...</h2>;
   }
 
